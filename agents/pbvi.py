@@ -7,8 +7,7 @@ from typing import Tuple, Optional, Literal, List
 
 
 class PBVI:
-    def __init__(self, transition_fn: np.ndarray[float], sensor_model: np.ndarray[float], reward_fn: np.ndarray[float], terminal_states: np.ndarray[bool],
-                 gamma: float, epsilon: float = 1e-6):
+    def __init__(self, transition_fn: np.ndarray[float], sensor_model: np.ndarray[float], reward_fn: np.ndarray[float], terminal_states: np.ndarray[bool], gamma: float):
         """
         Point-Based Value Iteration (PBVI) Algorithm
         :param transition_fn: state x action x state: P(s' | s, a) - probability of transitioning to s' given s and a
@@ -26,13 +25,11 @@ class PBVI:
         assert reward_fn.shape[0] == transition_fn.shape[0], 'Reward function must have same number of states as transition function'
         assert reward_fn.shape[1] == transition_fn.shape[1], 'Reward function must have same number of actions as transition function'
         assert 0.0 <= gamma <= 1.0, 'Discount factor must be in [0, 1]'
-        assert 0.0 < epsilon, 'Epsilon must be positive'
         self._transition_function = transition_fn
         self._sensor_model = sensor_model
         self._reward_fn = reward_fn
         self._terminal_states = terminal_states
         self._gamma = gamma
-        self._epsilon = epsilon
         self._num_states = transition_fn.shape[0]
         self._num_actions = transition_fn.shape[1]
         self._num_obs = sensor_model.shape[1]

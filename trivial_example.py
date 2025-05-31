@@ -39,16 +39,27 @@ if __name__ == '__main__':
     sensor_model[1, 0] = 0.4  # observe A when in B
     sensor_model[1, 1] = 0.6  # observe B when in B
     assert np.isclose(sensor_model.sum(-1), 1.0).all(), 'Sensor model is not normalized'
-    eps = 1e-6  # maximum error allowed in value function
     gamma = 0.99 # discount factor - NOTE was 1.0 but Distributional RL doesnt support 1.0
+    convergence_eps = 1e-3 # convergence threshold for PBVI and DPBVI
     max_itrs_ = 10000
     steps_before_belief_expansion_ = 160000 # NOTE: disabled
     beliefs_: np.ndarray[float] = np.linspace(0.0, 1.0, 20).reshape(-1, 1)
     beliefs_ = np.hstack([beliefs_, 1.0 - beliefs_])
-    pbvi = PBVI(transition_function, sensor_model, reward_function, terminal_states, gamma, epsilon=eps)
-    policy, beliefs = pbvi.plan(beliefs_, steps_before_belief_expansion_, max_itrs_)
+    pbvi = PBVI(transition_function, sensor_model, reward_function, terminal_states, gamma)
+    policy, beliefs = pbvi.plan(beliefs_, steps_before_belief_expansion_, max_itrs_, convergence_eps=convergence_eps)
     print(f'PBVI Policy: {policy} Values: {pbvi.values[:beliefs_.shape[0]]}')
     dpbvi = DPBVI(transition_function, sensor_model, reward_function, terminal_states, gamma, (0, 100))
-    policy, beliefs = dpbvi.plan(beliefs_, max_itrs_, steps_before_belief_expansion=steps_before_belief_expansion_)
+    policy, beliefs = dpbvi.plan(beliefs_, max_itrs_, steps_before_belief_expansion=steps_before_belief_expansion_, convergence_eps=convergence_eps)
     print(f'DPBVI Policy: {policy} Values: {dpbvi.values[:beliefs_.shape[0]]}')
     print(f'All Values Close: {np.allclose(pbvi.values, dpbvi.values)}')
+    max_abs_cached_val_diff = np.abs(pbvi.cached_values - dpbvi.cached_values).max(axis=1) # take max across beliefs
+    fig, ax = plt.subplots(figsize=(12, 8))
+    ax = sns.lineplot(x=np.arange(max_abs_cached_val_diff.shape[0]), y=max_abs_cached_val_diff, ax=ax)
+    ax.set_title('Maximum Absolute Value Difference per Iteration', fontsize=20)
+    ax.set_xlabel('Iteration', fontsize=16)
+    ax.set_ylabel('Max Absolute Difference', fontsize=16)
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+    ax.yaxis.offsetText.set_fontsize(12)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.tick_params(axis='both', which='minor', labelsize=8)
+    plt.show()

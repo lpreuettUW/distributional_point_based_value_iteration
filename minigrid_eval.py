@@ -560,13 +560,25 @@ if __name__ == '__main__':
             beliefs[idx, state_idx] = 1.0
 
         gamma = 0.9
-        max_iterations = 1000
+        max_iterations = 10000
+        convergence_eps = 1e-3  # convergence threshold for PBVI and DPBVI
         pbvi = PBVI(transition_model.transition_model, sensor_model.sensor_model, reward_function.reward_function, terminal_states, gamma=gamma)
-        policy, beliefs = pbvi.plan(beliefs, steps_before_belief_expansion=max_iterations, max_itrs=max_iterations)
+        policy, beliefs = pbvi.plan(beliefs, steps_before_belief_expansion=max_iterations, max_itrs=max_iterations, convergence_eps=convergence_eps)
         dist_support = (0, 5)
         dpbvi = DPBVI(transition_model.transition_model, sensor_model.sensor_model, reward_function.reward_function, terminal_states, gamma=gamma, dist_support=dist_support)
-        policy, beliefs = dpbvi.plan(beliefs, steps_before_belief_expansion=max_iterations, max_itrs=max_iterations)
+        policy, beliefs = dpbvi.plan(beliefs, steps_before_belief_expansion=max_iterations, max_itrs=max_iterations, convergence_eps=convergence_eps)
         print(f'All Values Close: {np.allclose(pbvi.values, dpbvi.values)}')
+        max_abs_cached_val_diff = np.abs(pbvi.cached_values - dpbvi.cached_values).max(axis=1)  # take max across beliefs
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax = sns.lineplot(x=np.arange(max_abs_cached_val_diff.shape[0]), y=max_abs_cached_val_diff, ax=ax)
+        ax.set_title('Maximum Absolute Value Difference per Iteration', fontsize=20)
+        ax.set_xlabel('Iteration', fontsize=16)
+        ax.set_ylabel('Max Absolute Difference', fontsize=16)
+        ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+        ax.yaxis.offsetText.set_fontsize(12)
+        ax.tick_params(axis='both', which='major', labelsize=12)
+        ax.tick_params(axis='both', which='minor', labelsize=8)
+        plt.show()
 
         def update_belief(b: np.ndarray, sensor_model_: SensorModel, transition_fn_: TransitionModel, obs_: Observation, obs_space_: ObservationSpace) -> np.ndarray:
             obs_idx = obs_space_.get_observation_index(obs_)
