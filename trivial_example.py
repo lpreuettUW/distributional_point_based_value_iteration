@@ -52,12 +52,13 @@ if __name__ == '__main__':
     policy, beliefs = dpbvi.plan(beliefs_, max_itrs_, steps_before_belief_expansion=steps_before_belief_expansion_, convergence_eps=convergence_eps)
     print(f'DPBVI Policy: {policy} Values: {dpbvi.values[:beliefs_.shape[0]]}')
     print(f'All Values Close: {np.allclose(pbvi.values, dpbvi.values)}')
-    max_abs_cached_val_diff = np.abs(pbvi.cached_values - dpbvi.cached_values).max(axis=1) # take max across beliefs
+    denom = np.where(np.abs(pbvi.cached_values) > 1e-8, np.abs(pbvi.cached_values), 1e-8) # avoid division by zero
+    max_abs_cached_val_rel_error = (np.abs(pbvi.cached_values - dpbvi.cached_values) / denom).max(axis=1) # take max across beliefs
     fig, ax = plt.subplots(figsize=(12, 8))
-    ax = sns.lineplot(x=np.arange(max_abs_cached_val_diff.shape[0]), y=max_abs_cached_val_diff, ax=ax)
-    ax.set_title('Maximum Absolute Value Difference per Iteration', fontsize=20)
+    ax = sns.lineplot(x=np.arange(max_abs_cached_val_rel_error.shape[0]), y=max_abs_cached_val_rel_error, ax=ax)
+    ax.set_title('Maximum Value Relative Error per Iteration', fontsize=20)
     ax.set_xlabel('Iteration', fontsize=16)
-    ax.set_ylabel('Max Absolute Difference', fontsize=16)
+    ax.set_ylabel('Max Relative Error', fontsize=16)
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
     ax.yaxis.offsetText.set_fontsize(12)
     ax.tick_params(axis='both', which='major', labelsize=12)
